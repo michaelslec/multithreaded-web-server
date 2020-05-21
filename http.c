@@ -40,7 +40,7 @@ void put_request(struct httpRequest req, struct httpResponse* res) {
     } while (total_recv_length < req.content_length);
 
     close(fd);
-    
+
     res->status_code =  201;
 }
 
@@ -50,20 +50,22 @@ void get_request(struct httpRequest req, struct httpResponse* res) {
 
     if(access(req.filename, F_OK)) {
         res->status_code = 404;
+        return;
     }
 
     int fd = open(req.filename, O_RDONLY);
     if (fd < 0) {
-        res->status_code  = 403;
+        res->status_code = 403;
+        return;
     }
 
     struct stat statbuf;
     fstat(fd, &statbuf);
-    
+    res->content_length = statbuf.st_size;
 
     close(fd);
 
-    res->status_code  = 200;
+    res->status_code = 200;
 }
 
 void head_request(struct httpRequest req, struct httpResponse* res) {
@@ -72,10 +74,11 @@ void head_request(struct httpRequest req, struct httpResponse* res) {
 
     struct stat statbuf;
     int stat_info = stat(req.filename, &statbuf);
-
     if(stat_info < 0) {
         res->status_code = 404;
+        return;
     }
+    res->content_length = statbuf.st_size;
 
     res->status_code = 200;
 }
@@ -169,7 +172,7 @@ struct httpResponse process_request(const struct httpRequest request) {
     }
 
     calculate_status_code_message(&res);
-    printResponse(res);
+    /* printResponse(res); */
 
     return res;
 }
@@ -184,21 +187,25 @@ void calculate_status_code_message(struct httpResponse* res) {
             break;
         case 400:
             strcpy(res->status_code_message, "Bad Request");
+            res->content_length = 0;
             break;
         case 403:
             strcpy(res->status_code_message, "Forbidden");
+            res->content_length = 0;
             break;
-        case 404: 
+        case 404:
             strcpy(res->status_code_message, "Not Found");
+            res->content_length = 0;
             break;
         default:
             strcpy(res->status_code_message, "Internal Server Error");
+            res->content_length = 0;
             break;
     }
 }
 
 // TODO
 void send_response(const struct httpResponse response) {
-    printf("Constructing Response\n");
+    printResponse(response);
 }
 
