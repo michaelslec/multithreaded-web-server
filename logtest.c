@@ -45,20 +45,21 @@ struct dispatcherStruct {
     int log_fd;
 };
 
-struct worker{
-    pthread_t worker_id;
-    //int client_sockd;
-    int log_fd;
-    //pthread_cond_t condition_var;
-    //char* message;
+struct worker {
+    int thread_fd;
+    int thread_number;
+    int lflag;
+    struct httpResponse *response;
+    struct httpObject *message;
+    pthread_t thread_id;
+    pthread_cond_t condition_variable;
+    pthread_mutex_t *lock;//using global mutex TODO
     ssize_t *poffset;
-    uint8_t buffer[BUFFER_SIZE];
-    ssize_t con_len;
-    char method[5];
-    char filename[28];
-    int error;
-    //uint8_t buffer[BUFFER_SIZE];
+    //ssize_t incr;
+    ssize_t i;
+    int count;
 };
+
 
 int countdigits(int num) {
     int count = 0;
@@ -73,67 +74,64 @@ int countdigits(int num) {
 
 }
 
-void logger(struct worker* w_thread, ssize_t offset) {
+void logger(struct worker* wStruct, ssize_t* offset) {
+    printf("log_fd = %d\n", log_fd);
     char buff[70];
-    if(w_thread->error == 400) {
-        ssize_t incr = snprintf(buff, 70, "FAIL: %s /%s HTTP/1.1 --- response"
-                "%d\n========\n", w_thread->method, w_thread->filename,
-                w_thread->error);
-        pwrite(w_thread->log_fd, buff, incr, offset);
+    char chars[BUFFER_SIZE];
+    ssize_t incr;
+    struct httpObject *message = wStruct->message;
+    strcpy(chars, message->buffer);
+    if(wStruct->response->status_code == 400) {
+        incr = snprintf(buff, 70, "FAIL: %s /%s HTTP/1.1 --- response %d\n========\n", message->method, message->filename,  wStruct->response->status_code);
+        pwrite(log_fd, buff, incr, *offset);
     }
     else {
-        ssize_t length = w_thread->con_len;
-        ssize_t incr = snprintf(buff, 70, "%s /%s length %ld\n",
-                w_thread->method,  w_thread->filename,  w_thread->con_len);
-        pwrite(w_thread->log_fd, buff, incr, offset);
+        if(wStruct->i == 0){
+            printf("log init\n");
+            incr = snprintf(buff, 70, "%s /%s length %ld\n", message->method,  message->filename,  message->content_length);
+            pwrite(log_fd, buff, incr, *offset);
+            offset += incr;
+            wStruct->count = 0;
+        }
+        incr = snprintf(buff, 70, "%s /%s length %ld\n", message->method,  message->filename,  message->content_length);
+        pwrite(log_fd, buff, incr, *offset);
         offset += incr;
-        int count = 0;
-        char * c = &(w_thread->buffer);
-        for (int i = 0; i < length; i++) {
+        wStruct->count = 0;
+        //////
+        int count = wStruct->count;
+        printf("i = %ld\n", wStruct->i);
+        printf("i + buf = %ld\n", (BUFFER_SIZE +  wStruct->i));
+
+        char * c = &chars;
+
+        for (ssize_t i = wStruct->i; i < message->content_length - wStruct->i; i++) {
+            printf("%c", c[i]);
+            //printf("made it to for loop\n");
             if ((i % 20) == 0) {
                 if (i != 0) {
                     incr = snprintf(buff, 70, "\n");
-                    pwrite(w_thread->log_fd, buff, incr, offset);
-                    offset += incr;
+                    pwrite(log_fd, buff, incr, *offset);
+                    *offset += incr;
                 }
                 incr = snprintf(buff, 70, "%07d", count);
-                pwrite(w_thread->log_fd, buff, incr, offset);
-                offset += incr;
+                pwrite(log_fd, buff, incr, *offset);
+                *offset += incr;
                 count +=2;
                 incr = snprintf(buff, 70, "0");
-                pwrite(w_thread->log_fd, buff, incr, offset);
-                offset += incr;
+                pwrite(log_fd, buff, incr, *offset);
+                *offset += incr;
             }
             incr = snprintf(buff, 70, " %02x", c[i]);
-            pwrite(w_thread->log_fd, buff, incr, offset);
-            offset += incr;
+            pwrite(log_fd, buff, incr, *offset);
+            *offset += incr;
         }
         incr = snprintf(buff, 70, "\n========\n");
-        pwrite(w_thread->log_fd, buff, incr, offset);
-        offset += incr;
+        pwrite(log_fd, buff, incr, *offset);
+        *offset += incr;
     }
+    printf("\n");
 }
 
-void* handle_task(void* thread) {
-    struct worker* w_thread = (struct worker*)thread;
-    ssize_t total;
-    if (w_thread->error == 400) {
-        total = strlen(w_thread->method) + strlen(w_thread->filename) + 38;
-    }
-    else {
-        ssize_t length = w_thread->con_len;
-        total = strlen(w_thread->method) + strlen(w_thread->filename) + countdigits(length) + 11;
-        total += (69*(length/20))+((length%20)*3+9) +9;
-    }
-
-    pthread_mutex_lock(&mutex_log);
-    ssize_t offset = *(w_thread->poffset);
-    *(w_thread->poffset) += total;
-    logger(w_thread, offset);
-    pthread_mutex_unlock(&mutex_log);
-
-    return NULL;
-}
 void* dispatcher(void* dispatch){
     struct dispatcherStruct* dStruct = (struct dispatcherStruct *) dispatch;
 
@@ -152,14 +150,15 @@ void* dispatcher(void* dispatch){
     \param client_sockd - socket file descriptor
     \param message - object we want to 'fill in' as we read in the HTTP message
 */
-int read_http_response(ssize_t client_sockd, struct httpObject *message) {
+void read_http_response(struct worker* worker_thread) {
     printf("Reading client response...\n");
+    struct httpObject* message = worker_thread->message;
     
     memset(message->buffer, '\0', BUFFER_SIZE);
     
-    int res = recv(client_sockd, message->buffer, BUFFER_SIZE, 0);
+    int res = recv(worker_thread->thread_fd, message->buffer, BUFFER_SIZE, 0);
     if(res < 0) {
-        return 400;
+        worker_thread->response->status_code = 400;
     }
     
     // read in http header
@@ -170,7 +169,7 @@ int read_http_response(ssize_t client_sockd, struct httpObject *message) {
     int con_int = atoi(con_len);
     message->content_length = (ssize_t) con_int;
 
-    return 1;
+    worker_thread->response->status_code = 1;
 }
 
 /*
@@ -204,38 +203,55 @@ int check_filename(char* filename) {
 
 // httpObject* -> SIDE EFFECTS:
 // Takes httpObject and tries to write to filename
-void put_request(int client_fd, struct httpResponse *response, struct httpObject *message) {
+void put_request(struct worker* wStruct) {
     printf("Processing PUT request\n\n");
 
-    memset(message->buffer, '\0', BUFFER_SIZE);
+    memset(wStruct->message->buffer, '\0', BUFFER_SIZE);
 
     char write_file[BUFFER_SIZE];
-    sprintf(write_file, SERVER_PATH, message->filename);
+    sprintf(write_file, SERVER_PATH, wStruct->message->filename);
 
     // PRAISE BE TO OPEN FLAGS RDWR CREATE && TRUNC
     int fd = open(write_file, O_RDWR | O_CREAT | O_TRUNC, 0777);
     if(fd < 0) {
         printf("errono, %d\n", errno);
         perror("put error");
-        response->status_code = 400;
+        wStruct->response->status_code = 400;
         return;
     }
 
     printf("writing...\n");
+    /////////////////////////////////////////// begin log offset calc
+    ssize_t offset;
+    if(wStruct->lflag) {
+        ssize_t length = wStruct->message->content_length;
+        ssize_t total = strlen(wStruct->message->method) + strlen(wStruct->message->filename) + countdigits(length) + 11;
+        total += (69*(length/20))+((length%20)*3+9) + 9;
+        printf("put_request: total == %ld\n", total);
+        wStruct->i = 0;
+        pthread_mutex_lock(&mutex_log);
+        offset = *(wStruct->poffset);
+        *(wStruct->poffset) += total;
+        pthread_mutex_unlock(&mutex_log);
+    }
+    /////////////////////////////////////////// end log offset calc
 
     int total_recv_length = 0;
 
     do {
-        int recv_length = read(client_fd, message->buffer, BUFFER_SIZE);
+        int recv_length = read(wStruct->thread_fd, wStruct->message->buffer, BUFFER_SIZE);
         total_recv_length += recv_length;
-        write(fd, message->buffer, recv_length);
-        // printf("total_recv_length: %d\n", total_recv_length);
-        //printf("body == %s\n", message->body);
-    } while (total_recv_length < message->content_length);
+        write(fd, wStruct->message->buffer, recv_length);
+        //////////////////////////////////// begin log
+        if(wStruct->lflag) {
+            logger(wStruct, &offset);
+        }
+        //////////////////////////////////// end log
+    } while (total_recv_length < wStruct->message->content_length);
 
     close(fd);
-    
-    response->status_code = 201;
+
+    wStruct->response->status_code = 201;
 }
 /*
     httpObject* -> SIDE EFFECTS:
@@ -303,7 +319,10 @@ void head_request(struct httpResponse *response, struct httpObject *message) {
      1) check for non-supported requests (unsupported method, //).
      2) Route to proper method handler
 */
-void process_request(int client_fd, struct httpResponse *response, struct httpObject *message) {
+void process_request(struct worker *wStruct) {
+    struct httpObject *message = wStruct->message;
+    struct httpResponse *response = wStruct->response;
+
     if (!check_filename(message->filename)) {
         response->status_code = 400;
         return;
@@ -312,7 +331,7 @@ void process_request(int client_fd, struct httpResponse *response, struct httpOb
 
     // Switch for methods
     if((strcmp(message->method, "PUT")) == 0) {
-        put_request(client_fd, response, message);
+        put_request(wStruct);
     }
     else if((strcmp(message->method, "GET") == 0)) {
         get_request(response, message);
@@ -326,7 +345,9 @@ void process_request(int client_fd, struct httpResponse *response, struct httpOb
 }
 
 
-void construct_http_response(struct httpResponse *response, struct httpObject *message) {
+void construct_http_response(struct worker *wStruct) {
+    struct httpObject *message = wStruct->message;
+    struct httpResponse *response = wStruct->response;
     printf("Status Code: %d\nFilename: %s\nContent-Length: %ld\n\n",
              response->status_code, message->filename, message->content_length);
 
@@ -356,9 +377,12 @@ void construct_http_response(struct httpResponse *response, struct httpObject *m
     }
 }
 
-void send_http_response(int client_fd, struct httpResponse *response, struct httpObject *message){
-    // send http header response to the client
-    dprintf(client_fd, response->response, BUFFER_SIZE);
+void send_http_response(struct worker *wStruct) {
+    // send http header response to the clien
+    struct httpObject *message = wStruct->message;
+    struct httpResponse *response = wStruct->response;
+
+    dprintf(wStruct->thread_fd, response->response, BUFFER_SIZE);
 
     // if get request send contents of file to client
     if((strcmp(message->method, "GET") == 0) && response->status_code == 200) {
@@ -368,7 +392,7 @@ void send_http_response(int client_fd, struct httpResponse *response, struct htt
         do {
             int writ_length = read(message->fd, message->buffer, BUFFER_SIZE);
             total_writ_length -= writ_length;
-            write(client_fd, message->buffer, writ_length);
+            write(wStruct->thread_fd, message->buffer, writ_length);
             //printf("total_writ_length: %d\n", total_writ_length);
             //printf("body == %s\n", message.body);
         } while (total_writ_length > 0);
@@ -425,12 +449,12 @@ int main(int argc, char** argv) {
     }
 
     int port_number = atoi(argv[optind]);
-    printf("Nflag = %d, ", Nflag);
-    printf("lflag = %d, ", lflag);
-    printf("tcount = \"%d\"\n", thread_count);
-    printf("logname = \"%s\"\n", logname);
-    printf("port# = %d\n", port_number);
-    printf("log_fd = %d\n", log_fd);
+    /* printf("Nflag = %d, ", Nflag); */
+    /* printf("lflag = %d, ", lflag); */
+    /* printf("tcount = \"%d\"\n", thread_count); */
+    /* printf("logname = \"%s\"\n", logname); */
+    /* printf("port# = %d\n", port_number); */
+    /* printf("log_fd = %d\n", log_fd); */
 
     /*
       Create sockaddr_in with server information
@@ -496,6 +520,14 @@ int main(int argc, char** argv) {
 
     struct httpObject message;
     struct httpResponse response;
+    struct worker worker_thread;
+
+    ssize_t offset = 0;
+    worker_thread.thread_fd = -1;
+    worker_thread.lflag = lflag;
+    worker_thread.message = &message;
+    worker_thread.response = &response;
+    worker_thread.poffset = &offset;
 
     while (true) {
         printf("[+] server is waiting...\n");
@@ -504,9 +536,9 @@ int main(int argc, char** argv) {
         /*
          * 1. Accept Connection
          */
-        int client_sockd = accept(server_sockd, &client_addr, &client_addrlen);
+        worker_thread.thread_fd = accept(server_sockd, &client_addr, &client_addrlen);
 
-        if (client_sockd == -1) {
+        if (worker_thread.thread_fd == -1) {
           warn("accept");
           return -1;
         }
@@ -514,24 +546,24 @@ int main(int argc, char** argv) {
          * 2. Read HTTP Message
          */
 
-        response.status_code = read_http_response(client_sockd, &message);
+        read_http_response(&worker_thread);
 
         /*
          * 3. Process Request
          */
-        process_request(client_sockd, &response, &message);
+        process_request(&worker_thread);
 
         /*
          * 4. Construct Response
          */
 
-        construct_http_response(&response, &message);
+        construct_http_response(&worker_thread);
 
         /*
          * 5. Send Response
          */
 
-        send_http_response(client_sockd, &response, &message);
+        send_http_response(&worker_thread);
 
         printf("Response Sent\n");
     }
@@ -539,4 +571,5 @@ int main(int argc, char** argv) {
 
     return EXIT_SUCCESS;
 }
+
 
