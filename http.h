@@ -28,6 +28,7 @@ struct httpResponse {
     int status_code;               // 200, 404, etc.
     char status_code_message[100]; // OK, File not found, etc
     ssize_t content_length;        // example: 13
+    int origin_socket;      // originating socket file descriptor
 };
 
 /*

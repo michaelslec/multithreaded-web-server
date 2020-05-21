@@ -127,6 +127,7 @@ int validate(const struct httpRequest req) {
 struct httpRequest read_http_request(ssize_t client_sockd) {
     struct httpRequest req;
     char buffer[BUFFER_SIZE];
+    memset(buffer, '\0', BUFFER_SIZE);
 
     // Receive client info
     int res = recv(client_sockd, buffer, BUFFER_SIZE, 0);
@@ -152,7 +153,6 @@ struct httpRequest read_http_request(ssize_t client_sockd) {
     return req;
 }
 
-// TODO
 struct httpResponse process_request(const struct httpRequest request) {
     struct httpResponse res;
     if (!validate(request)) {
@@ -172,6 +172,7 @@ struct httpResponse process_request(const struct httpRequest request) {
     }
 
     calculate_status_code_message(&res);
+    res.origin_socket = request.origin_socket;
     /* printResponse(res); */
 
     return res;
@@ -206,6 +207,35 @@ void calculate_status_code_message(struct httpResponse* res) {
 
 // TODO
 void send_response(const struct httpResponse response) {
-    printResponse(response);
+    // if get request send contents of file to client
+    char buffer[BUFFER_SIZE];
+    memset(buffer, '\0', BUFFER_SIZE);
+
+    sprintf(buffer, "HTTP/1.1 %d %s\r\nContent-Length:"
+            "%ld\r\n\r\n", response.status_code, response.status_code_message,
+            response.content_length);
+
+    write(response.origin_socket, buffer, BUFFER_SIZE);
+
+    /* if((strcmp(message->method, "GET") == 0) && response->status_code == 200) { */
+    /*     memset(buffer, '\0', BUFFER_SIZE); */
+    /*     int total_writ_length = response->content_length; */
+    /*  */
+    /*     int fd = open(res.filename, O_RDONLY); */
+    /*     if (fd < 0) { */
+    /*         res->status_code = 403; */
+    /*         return; */
+    /*     } */
+    /*     do { */
+    /*         int writ_length = read(message->fd, message->buffer, BUFFER_SIZE); */
+    /*         total_writ_length -= writ_length; */
+    /*         write(client_fd, message->buffer, writ_length); */
+    /*         //printf("total_writ_length: %d\n", total_writ_length); */
+    /*         //printf("body == %s\n", message.body); */
+    /*     } while (total_writ_length > 0); */
+    /*     //printf("response: %s\n", response.response); */
+    /*  */
+    /*     close(fd); */
+    /* } */
 }
 
