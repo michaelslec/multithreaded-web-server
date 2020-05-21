@@ -18,6 +18,24 @@ pthread_mutex_t mutex_log = PTHREAD_MUTEX_INITIALIZER;
 
 int log_fd; // Log file descriptor
 
+struct httpResponse {
+  int status_code;
+  char response[BUFFER_SIZE];
+};
+
+struct httpObject {
+    char method[5];         // PUT, HEAD, GET
+    char filename[28];      // what is the file we are worried about
+    char httpversion[9];    // HTTP/1.1
+    ssize_t content_length; // example: 13
+    //int status_code;
+    uint8_t buffer[BUFFER_SIZE];
+    //uint8_t body[BUFFER_SIZE];
+    //char response[BUFFER_SIZE];
+    int fd; // file descriptor of file being opened by GET function
+};
+
+
 struct dispatcherStruct {
     int lflag;
     int thread_count;
@@ -183,6 +201,70 @@ int main(int argc, char** argv) {
     printf("port# = %d\n", port_number);
     printf("log_fd = %d\n", log_fd);
 
+    /*
+      Create sockaddr_in with server information
+    */
+
+    struct sockaddr_in server_addr;
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port_number);
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    socklen_t addrlen = sizeof(server_addr);
+
+    /*
+      Create server socket
+    */
+    int server_sockd = socket(AF_INET, SOCK_STREAM, 0);
+
+    // Need to check if server_sockd < 0, meaning an error
+    if (server_sockd < 0) {
+    perror("socket");
+    }
+
+    /*
+      Configure server socket
+    */
+    int enable = 1;
+
+    /*
+      This allows you to avoid: 'Bind: Address Already in Use' error
+    */
+    int ret = setsockopt(server_sockd, SOL_SOCKET, SO_REUSEADDR, &enable,
+                       sizeof(enable));
+
+    if (ret == -1) {
+    perror("setsockopt");
+    exit(EXIT_FAILURE);
+    }
+
+    /*
+      Bind server address to socket that is open
+    */
+    ret = bind(server_sockd, (struct sockaddr *)&server_addr, addrlen);
+
+    if (ret == -1) {
+    warn("bind");
+    return -1;
+    }
+
+    /*
+      Listen for incoming connections
+    */
+    ret = listen(server_sockd, 5); // 5 should be enough, if not use SOMAXCONN
+
+    if (ret < 0) {
+        return EXIT_FAILURE;
+    }
+
+    /*
+      Connecting with a client
+    */
+    struct sockaddr client_addr;
+    socklen_t client_addrlen;
+
+    struct httpObject message;
+    struct httpResponse response;
     
 
     return EXIT_SUCCESS;
