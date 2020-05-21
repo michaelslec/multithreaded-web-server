@@ -20,12 +20,14 @@ struct httpRequest {
     char filename[28];      // what is the file we are worried about
     char httpversion[9];    // HTTP/1.1
     ssize_t content_length; // example: 13
+    int origin_socket;      // originating socket file descriptor
 };
 
 struct httpResponse {
     char method[5];                // PUT, HEAD, GET
     int status_code;               // 200, 404, etc.
     char status_code_message[100]; // OK, File not found, etc
+    ssize_t content_length;        // example: 13
 };
 
 /*
@@ -48,7 +50,7 @@ struct httpResponse process_request(const struct httpRequest request);
    \param response holds response info
    \param client_sockd holds socket file descriptor of client with request
 */
-void send_response(const struct httpResponse response, int client_sockd); 
+void send_response(const struct httpResponse response); 
 
 /*
    Helper function: Prints out vlaues of httpRequest struct
@@ -80,3 +82,25 @@ int check_http_version(const char* version);
    \param method string representing HTTP method
 */
 int check_method(const char* method);
+
+/*
+ * returns status code of put request & writes file
+ * \param req the request made by the client
+ * \param client_sockd socket file descriptor
+ * \return status code of response
+ */
+int put_request(struct httpRequest req);
+
+/*
+ * returns status code of get request
+ * \param req the request made by the client
+ * \return status code of response
+ */
+int get_request(struct httpRequest req);
+
+/*
+ * returns status code of head request
+ * \param req the request made by the client
+ * \return status code of response
+ */
+int head_request(struct httpRequest req);

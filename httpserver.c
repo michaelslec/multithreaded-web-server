@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
         /*
          * 2. Read HTTP Message
          */
-        send_response(process_request(read_http_request(client_sockd)), client_sockd);
+        send_response(process_request(read_http_request(client_sockd)));
     }
 
     return EXIT_SUCCESS;
