@@ -142,16 +142,42 @@ struct httpResponse process_request(const struct httpRequest request) {
 
     // Switch for methods
     if((strcmp(request.method, "PUT")) == 0) {
+        strcpy(res.method, "PUT");
         res.status_code = put_request(request);
     }
     else if((strcmp(request.method, "GET") == 0)) {
+        strcpy(res.method, "GET");
         res.status_code = get_request(request);
     }
     else if((strcmp(request.method, "HEAD") == 0)) {
+        strcpy(res.method, "HEAD");
         res.status_code = head_request(request);
     }
 
     return res;
+}
+
+void calculate_status_code_message(struct httpResponse* res) {
+    switch(res->status_code) {
+        case 200:
+            strcpy(res->status_code_message, "OK");
+            break;
+        case 201:
+            strcpy(res->status_code_message, "Created");
+            break;
+        case 400:
+            strcpy(res->status_code_message, "Bad Request");
+            break;
+        case 403:
+            strcpy(res->status_code_message, "Forbidden");
+            break;
+        case 404: 
+            strcpy(res->status_code_message, "Not Found");
+            break;
+        default:
+            strcpy(res->status_code_message, "Internal Server Error");
+            break;
+    }
 }
 
 // TODO

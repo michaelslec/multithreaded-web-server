@@ -104,3 +104,9 @@ int get_request(struct httpRequest req);
  * \return status code of response
  */
 int head_request(struct httpRequest req);
+
+/*
+ * Inserts proper message based off status code into given httpReponse obj
+ \param res the HTTP resopnse
+ */
+void calculate_status_code_message(struct httpResponse* res);
