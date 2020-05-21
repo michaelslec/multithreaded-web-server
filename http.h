@@ -1,3 +1,6 @@
+#ifndef OOGA_HTTP_H_
+#define OOGA_HTTP_H_
+
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -114,3 +117,5 @@ void head_request(struct httpRequest req, struct httpResponse* res);
  \param res the HTTP resopnse
  */
 void calculate_status_code_message(struct httpResponse* res);
+
+#endif

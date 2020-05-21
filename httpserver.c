@@ -2,7 +2,100 @@
 #include "threads.h"
 
 int log_fd = 0;
-int thread_count = 0;
+size_t thread_count = 0;
+
+pthread_mutex_t mutex_queue = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t wait_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t  queue_cond = PTHREAD_COND_INITIALIZER;
+
+void* dispatcher(void* runtime_info)
+{
+    thread_runtime_t* runtime = (thread_runtime_t*) runtime_info;
+    worker_struct_t workers[runtime->thread_count];
+
+    // create the worker pool threads
+    for (int i = 0; i < runtime->thread_count; i++) {
+        printf("creating thread %d\n", i);
+        workers[i].client_sockd = -1;
+        workers[i].cond = (pthread_cond_t) PTHREAD_COND_INITIALIZER;
+
+        int error = pthread_create(&workers[i].thread_fd, NULL, worker_thread,
+                (void *) &workers[i]);
+        if (error != 0) {
+            write(STDERR_FILENO, "Error creating worker thread thread\n", 50);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // take client requests from queue, parse request, and send off for processing to next available thread
+    while (true) {
+        // Wait for main to signal that socket has been queue'd
+        int *psock_fd;
+        pthread_mutex_lock(&mutex_queue);
+        if ((psock_fd = dequeue()) == NULL) {// take next available client
+            pthread_cond_wait(&queue_cond, &mutex_queue);
+            psock_fd = dequeue();
+        }
+        pthread_mutex_unlock(&mutex_queue);
+
+        // check if pcleint has a fd to process
+        // iterate through pool of thread to find waiting thread
+        // unlock mutex and signal thread to work on processed client request
+
+        int loop_reset_sleep = 0;
+
+
+        /*
+         * while we haven't passed of the client_socketd
+         *   if worker with thread_fd of -1
+         *      give client_sockd to worker
+         *      exit while
+         */
+
+        if (psock_fd != NULL) {
+            int i = 0;
+            while (true) {
+                if (workers[i].thread_fd == -1) {
+                    workers[i].thread_fd = *psock_fd;
+                    free(psock_fd);//TODO correct place to free this?
+
+                    int error = pthread_cond_signal(&workers[i].cond);
+                    if (error != 0) {
+                        write(STDERR_FILENO, "Error signaling thread\n", 50);
+                        exit(EXIT_FAILURE);
+                    }
+
+                    break;
+                }
+                ++i; // Increment loop
+                // reset i to 0 to iterate from beginning or worker array
+                if (i == runtime->thread_count)
+                    i = 0;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+void* worker_thread(void* worker)
+{
+    while (true) {
+        pthread_mutex_lock(&wait_lock);
+        worker_struct_t* todo = (worker_struct_t*) worker;
+        if (todo->thread_fd < 0) {
+            if (pthread_cond_wait(&todo->cond, &wait_lock)) {
+                perror("worker_thread");
+            }
+        }
+        pthread_mutex_unlock(&wait_lock);
+
+        printf("Game time, baby: socket: %ld\n", todo->client_sockd);
+
+        todo->thread_fd = -1;
+    }
+}
+
 
 int main(int argc, char** argv) {
     // check for correct number of program arguments
@@ -97,6 +190,17 @@ int main(int argc, char** argv) {
     }
 
     /*
+     * Create dispatch thread
+     */
+
+    thread_runtime_t runtime = {log_fd, thread_count};
+    pthread_t dispatch_fd;
+    int error = pthread_create(&dispatch_fd, NULL, dispatcher, (void*)&runtime);
+    if (error < 0) {
+        perror("Dispatcher thread");
+    }
+
+    /*
         Connecting with a client
     */
     struct sockaddr client_addr;
@@ -109,6 +213,14 @@ int main(int argc, char** argv) {
          * 1. Accept Connection
          */
         int client_sockd = accept(server_sockd, &client_addr, &client_addrlen);
+        int *pclient = malloc(sizeof(int));// TODO ensure this is free() somewhere later on
+        *pclient = client_sockd;
+        printf("Queuing up socket_fd: %d\n", client_sockd);
+
+        pthread_mutex_lock(&mutex_queue);
+        pthread_cond_signal(&queue_cond);
+        enqueue(pclient);
+        pthread_mutex_unlock(&mutex_queue);
         // Remember errors happen
 
         /* char* buffer = "HTTP/1.1 200 OK\r\nContent-Length: 14\r\n\r\n"; */
