@@ -1,4 +1,5 @@
 #include "http.h"
+#include "threads.h"
 
 int log_fd = 0;
 int thread_count = 0;
