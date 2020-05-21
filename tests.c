@@ -43,6 +43,19 @@ START_TEST(get_request_test)
 }
 END_TEST
 
+START_TEST(head_request_test)
+{
+    struct httpRequest head_goodfile = {"HEAD", "SMALL_TEST", "1.1", 0};
+    ck_assert_int_eq(head_request(head_goodfile), 200);
+
+    struct httpRequest head_nofile = {"HEAD", "TEST", "1.1", 0};
+    ck_assert_int_eq(head_request(head_nofile), 404);
+
+    struct httpRequest head_noperm = {"HEAD", "NOPERMISSION", "1.1", 0};
+    ck_assert_int_eq(head_request(head_noperm), 200);
+}
+END_TEST
+
 START_TEST(validate_test)
 {
     struct httpRequest correct, bad_file, bad_method, bad_version;
@@ -104,7 +117,7 @@ START_TEST(process_request_test)
     ck_assert_mem_eq(&head_nofile_outcome, &head_nofile_res, sizeof(struct httpResponse));
 
     struct httpRequest head_noperm = {"HEAD", "NOPERMISSION", "1.1", 0};
-    struct httpResponse head_noperm_res = {"HEAD", 403, "Forbidden", 0};
+    struct httpResponse head_noperm_res = {"HEAD", 200, "OK", 0};
     struct httpResponse head_noperm_outcome = process_request(head_noperm);
     ck_assert_mem_eq(&head_noperm_outcome, &head_noperm_res, sizeof(struct httpResponse));
 }
@@ -126,6 +139,7 @@ Suite * testing_suite(void)
     tcase_add_test(tc_core, validate_test);
     tcase_add_test(tc_core, process_request_test);
     tcase_add_test(tc_core, get_request_test);
+    tcase_add_test(tc_core, head_request_test);
     suite_add_tcase(s, tc_core);
 
     return s;

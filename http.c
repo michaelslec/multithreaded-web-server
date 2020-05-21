@@ -9,7 +9,7 @@ void printRequest(const struct httpRequest req) {
 }
 
 int put_request(struct httpRequest req) {
-    printf("Processing PUT request...\n\n");
+    /* printf("Processing PUT request...\n\n"); */
     uint8_t buffer[BUFFER_SIZE];
     memset(buffer, '\0', BUFFER_SIZE);
 
@@ -19,7 +19,7 @@ int put_request(struct httpRequest req) {
         return 500;
     }
 
-    printf("writing...\n");
+    /* printf("writing...\n"); */
 
     int total_recv_length = 0;
     do {
@@ -34,7 +34,7 @@ int put_request(struct httpRequest req) {
 }
 
 int get_request(struct httpRequest req) {
-    printf("Processing GET request\n\n");
+    /* printf("Processing GET request\n\n"); */
 
     if(access(req.filename, F_OK)) {
         return 404;
@@ -50,21 +50,17 @@ int get_request(struct httpRequest req) {
     return 200;
 }
 
-// TODO
 int head_request(struct httpRequest req) {
     /* printf("Processing HEAD request\n\n"); */
-    /*  */
-    /* struct stat statbuf; */
-    /* int stat_info = stat(message->filename, &statbuf); */
-    /*  */
-    /* if(stat_info < 0) { */
-    /*     response->status_code = 404; */
-    /*     return; */
-    /* } */
-    /* message->content_length = statbuf.st_size; */
-    /*  */
-    /* response->status_code = 200; */
-    return 404;
+
+    struct stat statbuf;
+    int stat_info = stat(req.filename, &statbuf);
+
+    if(stat_info < 0) {
+        return 404;
+    }
+
+    return 200;
 }
 
 int check_filename(const char* filename) {
