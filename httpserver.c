@@ -1,6 +1,7 @@
 #include "http.h"
 
 int log_fd = 0;
+int thread_count = 0;
 
 int main(int argc, char** argv) {
     // check for correct number of program arguments
@@ -14,7 +15,6 @@ int main(int argc, char** argv) {
     int c;
     int Nflag = 0, lflag = 0;
     char *logname, *tcount;
-    int thread_count = 0;
 
     while ((c = getopt(argc, argv, "N:l:")) != -1) {
         switch (c) {

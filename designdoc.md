@@ -6,7 +6,7 @@ Write a web server that takes a port when the binary is executed:
 
 This web server will handle GET, PUT, HEAD requests. The requests should be formatted as such (Note: All return carriages are in Windows format \r\n):
 
-    PUT: 
+    PUT:
 
         PUT /filepath HTTP/1.1
 
@@ -112,9 +112,9 @@ Responses will look like the following:
     *   **buffer uint[4096]**
     *   Interp. A structure that contains the request from a connecting client.
     *   Where method is HTTP method,
-    *   filename a path for information, 
-    *   httpversion is the HTTP protocol version, 
-    *   content_length is the size in bytes of information stored in buffer, 
+    *   filename a path for information,
+    *   httpversion is the HTTP protocol version,
+    *   content_length is the size in bytes of information stored in buffer,
     *   status_code is HTTP response (see step 4)
     *   Buffer is content of filename to be written OR having been read from
         filename OR to be displayed to screen
@@ -162,7 +162,7 @@ struct httpResponse process_request(const struct httpRequest request);
    \param response holds response info
    \param client_sockd holds socket file descriptor of client with request
 */
-void send_response(const struct httpResponse response); 
+void send_response(const struct httpResponse response);
 
 /*
    Helper function: Prints out values of httpRequest struct
@@ -225,6 +225,36 @@ void head_request(struct httpRequest req, struct httpResponse* res);
  */
 void calculate_status_code_message(struct httpResponse* res);
 
+# MULTITHREADING:
+
+## FLOW
+    * Dispatcher thread will wait conditionally on queue to be updated from
+      main
+    * This queue will contain socket file descriptors of clients
+    * dispatcher will then dequeue and send sockfd to worker thread
+    * worker thread will do  read, process, and send call chain
+
+## CRITICAL AREAS
+    * FILE I/O:
+        - Within method handler functions
+        - send_response()
+    * ENQUEUE & DEQUEUE
+        - main & dispatcher
+
+## AVOIDING BUSY WORK
+    * conditional signal for enqueueing and dequeueing
+    * conditional signal when sending work to worker
+
+## API
+
+// Sends work from queue to awaiting threads
+void * dispatcher();
+
+// worker_struct_t -> Side effects
+// Takes worker_struct_t, does work with socket and keeps track of conditional
+void* workerthread(void* worker_struct);
+
+
 # NOTES:
 
 To practice parsing header, use dog with a file.txt containing a hypothetical header before trying to implement in httpserver
@@ -255,7 +285,7 @@ To test server using curl:
 
     NOTE: -v for verbose is wanted
 
-         
+
 
 "curl -T tosend.txt localhost:8080/file.txt" will generate
 
