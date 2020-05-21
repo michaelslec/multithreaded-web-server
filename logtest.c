@@ -16,6 +16,8 @@
 
 pthread_mutex_t mutex_log = PTHREAD_MUTEX_INITIALIZER;
 
+int log_fd; // Log file descriptor
+
 struct dispatcherStruct {
     int lflag;
     int thread_count;
@@ -34,7 +36,7 @@ struct worker{
     ssize_t con_len;
     char method[5];
     char filename[28];
-    //int error;
+    int error;
     //uint8_t buffer[BUFFER_SIZE];
 };
 
@@ -126,8 +128,61 @@ void* dispatcher(void* dispatch){
 }
 
 int main(int argc, char** argv) {
-    // Open logging file
-    int log_fd = open(logfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    // GRAB OPTIONS
+    if (argc == 1) {
+        write(STDERR_FILENO, "No port number provided\n", 25);
+        exit(EXIT_FAILURE);
+    }
+    // parse arguments for flags and port number
+    extern char *optarg;
+    extern int optind;
+    int c;
+    int Nflag = 0, lflag = 0;
+    char *logname, *tcount;
+    int thread_count = 0;
+
+    while ((c = getopt(argc, argv, "N:l:")) != -1) {
+        switch (c) {
+            case 'N':
+                Nflag = 1;
+                tcount = optarg;
+                break;
+            case 'l':
+                lflag = 1;
+                logname = optarg;
+                break;
+            case '?':
+                exit(EXIT_FAILURE);
+                break;
+        }
+    }
+
+    if (Nflag == 1) {
+        thread_count = atoi(tcount);
+        if (thread_count < 1) {
+            write(STDERR_FILENO, "N must be 1 or greater\n", 25);
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        thread_count = 4;
+    }
+
+    if (lflag == 0) {
+        logname = "";
+    }
+    else {
+        //create log file if flagged
+        log_fd = open(logname, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    }
+
+    int port_number = atoi(argv[optind]);
+    printf("Nflag = %d, ", Nflag);
+    printf("lflag = %d, ", lflag);
+    printf("tcount = \"%d\"\n", thread_count);
+    printf("logname = \"%s\"\n", logname);
+    printf("port# = %d\n", port_number);
+    printf("log_fd = %d\n", log_fd);
+
     
 
     return EXIT_SUCCESS;
