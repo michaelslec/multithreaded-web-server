@@ -1,10 +1,5 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-cmake-*
 build
+
+testfiles/server_out/*
+testfiles/server_out
+testfiles/log
