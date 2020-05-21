@@ -1,1 +1,4 @@
-CMakeLists.txt not found in /home/michael/Documents/Tutoring/Michael T/Assignment 2 Select CMakeLists.txt file...
+/home/michael/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/201.7223.86/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" "/home/michael/Documents/Tutoring/Michael T/Assignment 2"
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/michael/Documents/Tutoring/Michael T/Assignment 2/cmake-build-debug
