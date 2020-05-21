@@ -61,6 +61,10 @@ int main(int argc, char** argv) {
         int client_sockd = accept(server_sockd, &client_addr, &client_addrlen);
         // Remember errors happen
 
+        /* char* buffer = "HTTP/1.1 200 OK\r\nContent-Length: 14\r\n\r\n"; */
+        /* write(client_sockd, buffer, strlen(buffer)); */
+        /* write(client_sockd, "int main() {}\n", 14); */
+
         /*
          * 2. Read HTTP Message
          */

@@ -173,6 +173,7 @@ struct httpResponse process_request(const struct httpRequest request) {
 
     calculate_status_code_message(&res);
     res.origin_socket = request.origin_socket;
+    strcpy(res.filename, request.filename);
     /* printResponse(res); */
 
     return res;
@@ -205,37 +206,81 @@ void calculate_status_code_message(struct httpResponse* res) {
     }
 }
 
-// TODO
 void send_response(const struct httpResponse response) {
     // if get request send contents of file to client
-    char buffer[BUFFER_SIZE];
+    uint8_t buffer[BUFFER_SIZE];
     memset(buffer, '\0', BUFFER_SIZE);
 
-    sprintf(buffer, "HTTP/1.1 %d %s\r\nContent-Length:"
-            "%ld\r\n\r\n", response.status_code, response.status_code_message,
+    sprintf(buffer, "HTTP/1.1 %d %s\r\nContent-Length: %ld\r\n\r\n",
+            response.status_code, response.status_code_message,
             response.content_length);
 
-    write(response.origin_socket, buffer, BUFFER_SIZE);
+    write(response.origin_socket, buffer, strlen(buffer));
+    /* write(response.origin_socket, "int main() {}\n", 14); */
 
-    /* if((strcmp(message->method, "GET") == 0) && response->status_code == 200) { */
-    /*     memset(buffer, '\0', BUFFER_SIZE); */
-    /*     int total_writ_length = response->content_length; */
-    /*  */
-    /*     int fd = open(res.filename, O_RDONLY); */
-    /*     if (fd < 0) { */
-    /*         res->status_code = 403; */
-    /*         return; */
-    /*     } */
-    /*     do { */
-    /*         int writ_length = read(message->fd, message->buffer, BUFFER_SIZE); */
-    /*         total_writ_length -= writ_length; */
-    /*         write(client_fd, message->buffer, writ_length); */
-    /*         //printf("total_writ_length: %d\n", total_writ_length); */
-    /*         //printf("body == %s\n", message.body); */
-    /*     } while (total_writ_length > 0); */
-    /*     //printf("response: %s\n", response.response); */
-    /*  */
-    /*     close(fd); */
-    /* } */
+    // If its a valid get request
+    if((strcmp(response.method, "GET") == 0) && response.status_code == 200) {
+        memset(buffer, '\0', BUFFER_SIZE);
+        int total_writ_length = response.content_length;
+        int fd = open(response.filename, O_RDONLY);
+
+        do {
+            int writ_length = read(fd, buffer, BUFFER_SIZE);
+            total_writ_length -= writ_length;
+            write(response.origin_socket, buffer, writ_length);
+        } while (total_writ_length > 0);
+
+        close(fd);
+    }
 }
 
+/* void construct_http_response(struct httpResponse *response, struct httpObject *message) { */
+/*     printf("Status Code: %d\nFilename: %s\nContent-Length: %ld\n\n", */
+/*              response->status_code, message->filename, message->content_length); */
+/*  */
+/*     ssize_t temp_length = 0; */
+/*     if ((strcmp(message->method, "PUT")) != 0) { */
+/*     temp_length = message->content_length; */
+/*     } */
+/*  */
+/*     switch(response->status_code) { */
+/*     case 200: snprintf(response->response, BUFFER_SIZE, "HTTP/%s 200 OK\r\nContent-Length: %ld\r\n\r\n", */
+/*                    message->httpversion, temp_length); */
+/*               break; */
+/*     case 201: snprintf(response->response, BUFFER_SIZE, "HTTP/%s 201 Created\r\nContent-Length: %ld\r\n\r\n", */
+/*                    message->httpversion, temp_length); */
+/*               break;           */
+/*     case 400: snprintf(response->response, BUFFER_SIZE, "HTTP/%s 400 Bad Request\r\nContent-Length: %ld\r\n\r\n", */
+/*                    message->httpversion, temp_length); */
+/*               break;           */
+/*     case 403: snprintf(response->response, BUFFER_SIZE, "HTTP/%s 403 Forbidden\r\nContent-Length: %ld\r\n\r\n", */
+/*                    message->httpversion, temp_length); */
+/*               break;           */
+/*     case 404: snprintf(response->response, BUFFER_SIZE, "HTTP/%s 404 Not Found\r\nContent-Length: %ld\r\n\r\n", */
+/*                    message->httpversion, temp_length); */
+/*               break;           */
+/*     default: snprintf(response->response, BUFFER_SIZE, "HTTP/%s 500 Internal Server Error\r\nContent-Length: %ld\r\n\r\n", */
+/*                    message->httpversion, temp_length);       */
+/*     } */
+/* } */
+/*  */
+/* void send_http_response(int client_fd, struct httpResponse *response, struct httpObject *message){ */
+/*     // send http header response to the client */
+/*     dprintf(client_fd, response->response, BUFFER_SIZE); */
+/*  */
+/*     // if get request send contents of file to client */
+/*     if((strcmp(message->method, "GET") == 0) && response->status_code == 200) { */
+/*         memset(message->buffer, '\0', BUFFER_SIZE); */
+/*         int total_writ_length = message->content_length; */
+/*  */
+/*         do { */
+/*             int writ_length = read(message->fd, message->buffer, BUFFER_SIZE); */
+/*             total_writ_length -= writ_length; */
+/*             write(client_fd, message->buffer, writ_length); */
+/*             //printf("total_writ_length: %d\n", total_writ_length); */
+/*             //printf("body == %s\n", message.body); */
+/*         } while (total_writ_length > 0); */
+/*         //printf("response: %s\n", response.response); */
+/*     } */
+/* } */
+/*  */
