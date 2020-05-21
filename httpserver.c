@@ -222,7 +222,7 @@ void put_request(struct workerStruct *wStruct) {
         ssize_t length = message->content_length;
         ssize_t total = strlen(message->method) + strlen(message->filename) + countdigits(length) + 11;
         total += (69*(length/20))+((length%20)*3+9) + 9;
-        printf("total length = %ld\n", total);
+        printf("put_request: total == %ld\n", total);
         wStruct->i = 0;
         pthread_mutex_lock(&mutex_log);
         offset = *(wStruct->poffset);
