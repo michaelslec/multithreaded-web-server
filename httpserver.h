@@ -34,14 +34,15 @@ int testingfunction(int a) {
 }
 
 /*
-    \brief 1. Want to read in the HTTP message/ data coming in from socket
-    \param client_sockd - socket file descriptor
-    \param message - object we want to 'fill in' as we read in the HTTP message
+   Takes socket and returns parsed request in a data structure
+   \param client_sockd - socket file descriptor
+   \return  struct httpRequest parsed data
 */
 struct httpRequest read_http_request(ssize_t client_sockd);
 
 /*
-    \brief 2. Want to process the message we just recieved
+   \ param request struct httpRequest holding parsed information from client
+                          socket
 */
 struct httpResponse process_request(const struct httpRequest request);
 
