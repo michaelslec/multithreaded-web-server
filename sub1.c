@@ -94,7 +94,8 @@ void put_request(int client_fd, struct httpResponse *response, struct httpObject
     memset(message->buffer, '\0', BUFFER_SIZE);
 
     //int fd = open(message->filename, O_RDWR | O_TRUNC | O_CREAT, 0777 );
-    int fd = open(message->filename,  O_WRONLY | O_CREAT, S_IWUSR | O_TRUNC);
+    int fd = open(message->filename, O_RDWR | O_CREAT | O_TRUNC, 0777);
+    //int fd = open(message->filename,  O_WRONLY | O_CREAT, S_IWUSR | O_TRUNC);
     if(fd < 0) {
         printf("errono, %d\n", errno);
         perror("put error");
@@ -362,3 +363,4 @@ int main(int argc, char **argv) {
 
     return EXIT_SUCCESS;
 }
+
