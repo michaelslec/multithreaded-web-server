@@ -1,10 +1,59 @@
 #include "http.h"
 
+int log_fd = 0;
+
 int main(int argc, char** argv) {
+    // check for correct number of program arguments
+    if (argc == 1) {
+        write(STDERR_FILENO, "No port number provided\n", 25);
+        exit(EXIT_FAILURE);
+    }
+    // parse arguments for flags and port number
+    extern char *optarg;
+    extern int optind;
+    int c;
+    int Nflag = 0, lflag = 0;
+    char *logname, *tcount;
+    int thread_count = 0;
+
+    while ((c = getopt(argc, argv, "N:l:")) != -1) {
+        switch (c) {
+            case 'N':
+                Nflag = 1;
+                tcount = optarg;
+                break;
+            case 'l':
+                lflag = 1;
+                logname = optarg;
+                break;
+            case '?':
+                exit(EXIT_FAILURE);
+                break;
+        }
+    }
+
+    if (Nflag == 1) {
+        thread_count = atoi(tcount);
+        if (thread_count < 1) {
+            write(STDERR_FILENO, "N must be 1 or greater\n", 25);
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        thread_count = 4;
+    }
+
+    if (lflag == 0) {
+        logname = "";
+    }
+    else {
+        //create log file if flagged
+        log_fd = open(logname, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+    }
+
     /*
-        Create sockaddr_in with server information
+      Create sockaddr_in with server information
     */
-    char* port = "8080";
+    char *port = argv[optind];
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
