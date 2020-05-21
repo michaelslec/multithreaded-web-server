@@ -1,11 +1,14 @@
 #include <check.h>
+#include <curl/curl.h>
 #include "httpserver.h"
 
 START_TEST(our_first_test)
 {
-    ck_assert_int_eq(testingfunction(2), 2);
-    ck_assert_int_ne(testingfunction(2), 5);
+    CURL *curl;
+    CURLcode res;
+
 }
+
 END_TEST
 
 Suite * testing_suite(void)

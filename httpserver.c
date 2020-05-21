@@ -1,17 +1,42 @@
 #include "httpserver.h"
 
-// TODO
-struct httpRequest read_http_request(ssize_t client_sockd) {
-    printf("This function will take care of reading message\n");
-
-    /*
-     * Start constructing HTTP request based off data from socket
-     */
-
-    return dummyReq;
+void printRequest(const struct httpRequest req) {
+    printf("HTTP REQUEST: \n");   
+    printf("method == %s\n", req.method);
+    printf("filename == %s\n", req.filename);
+    printf("httpversion == %s\n", req.httpversion);
+    printf("content_length == %ld\n", req.content_length);
 }
 
-// TODO
+struct httpRequest read_http_request(ssize_t client_sockd) {
+    struct httpRequest req;
+    char buffer[BUFFER_SIZE];
+
+    // Receive client info
+    int res = recv(client_sockd, buffer, BUFFER_SIZE, 0);
+    if(res < 0) {
+        // Return 400 in failure
+        struct httpResponse res = {"", 400, ""};
+        send_response(res, client_sockd);
+
+        return dummyReq;
+    }
+
+    // parse response into httpRequest object
+    sscanf(buffer, "%s%*[ /]%s%*[ HTTP/]%s", req.method, req.filename, 
+            req.httpversion);
+    char con_len[10];
+    sscanf(buffer, "%*s%*s%*s%*s%*s%*s%*s%*s%*s%*s%s",  con_len);
+    int con_int = atoi(con_len);
+    req.content_length = (ssize_t) con_int;
+
+    // LOGGING
+    /* printRequest(req); */
+    /* printf("http_request: buffer == %s\n", buffer); */
+    
+    return req;
+}
+
 struct httpResponse process_request(const struct httpRequest request) {
     printf("Processing Request\n");
 
@@ -93,3 +118,4 @@ int main(int argc, char** argv) {
 
     return EXIT_SUCCESS;
 }
+

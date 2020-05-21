@@ -12,8 +12,7 @@
 #define BUFFER_SIZE 4096
 
 struct httpRequest {
-    /*
-        Create some object 'struct' to keep track of all
+    /* Create some object 'struct' to keep track of all
         the components related to a HTTP message
         NOTE: There may be more member variables you would want to add
     */
@@ -36,17 +35,23 @@ int testingfunction(int a) {
 /*
    Takes socket and returns parsed request in a data structure
    \param client_sockd - socket file descriptor
-   \return  struct httpRequest parsed data
+   \return struct httpRequest parsed data
 */
 struct httpRequest read_http_request(ssize_t client_sockd);
 
 /*
-   \ param request struct httpRequest holding parsed information from client
-                          socket
+   Validates HTTP request & creates a response
+   \param request struct httpRequest holding parsed information from client
+                                     socket
+   \return struct httpResponse holding response data
 */
 struct httpResponse process_request(const struct httpRequest request);
 
 /*
-    \brief 3. Construct some response based on the HTTP request you recieved
+   Sends proper HTTP response to client_sockd
+   \param response holds response info
+   \param client_sockd holds socket file descriptor of client with request
 */
-void send_response(const struct httpResponse response, int client_sockd) ;
+void send_response(const struct httpResponse response, int client_sockd); 
+
+void printRequest(const struct httpRequest req);
