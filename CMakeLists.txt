@@ -7,6 +7,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
 
 find_package (Threads REQUIRED)
 
-add_executable(httpserver httpserver.c)
-
+add_executable(httpserver httpserver.c httpserver.h)
 target_link_libraries (httpserver Threads::Threads)
+
+# add_executable(tests tests.c httpserver.h)
+# target_link_libraries (tests Threads::Threads)
