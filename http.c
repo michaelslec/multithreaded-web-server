@@ -8,18 +8,77 @@ void printRequest(const struct httpRequest req) {
     printf("content_length == %ld\n", req.content_length);
 }
 
-// TODO
 int put_request(struct httpRequest req) {
-    return 404;
+    printf("Processing PUT request...\n\n");
+    uint8_t buffer[BUFFER_SIZE];
+    memset(buffer, '\0', BUFFER_SIZE);
+
+    int fd = open(req.filename,  O_RDWR | O_CREAT | O_TRUNC, 0777);
+    if(fd < 0) {
+        perror("put error");
+        return 500;
+    }
+
+    printf("writing...\n");
+
+    int total_recv_length = 0;
+    do {
+        int recv_length = read(req.origin_socket, buffer, BUFFER_SIZE);
+        total_recv_length += recv_length;
+        write(fd, buffer, recv_length);
+    } while (total_recv_length < req.content_length);
+
+    close(fd);
+    
+    return 201;
 }
 
 // TODO
 int get_request(struct httpRequest req) {
+    /* printf("Processing GET request\n\n"); */
+    /*  */
+    /* memset(message->buffer, '\0', BUFFER_SIZE); */
+    /*  */
+    /* if(access(message->filename, F_OK)) { */
+    /*     response->status_code = 404; */
+    /*     return; */
+    /* } */
+    /*  */
+    /* //int fd = open(message->filename, O_RDWR); */
+    /* int fd = open(message->filename, O_RDONLY); */
+    /* if(fd < 0) { */
+    /*     printf("errono, %d\n", errno); */
+    /*     perror("put error"); */
+    /*     response->status_code = 403; */
+    /*     return; */
+    /* } */
+    /* message->fd = fd; */
+    /* struct stat statbuf; */
+    /* int stat_info = stat(message->filename, &statbuf); */
+    /*  */
+    /* if(stat_info < 0) { */
+    /*     response->status_code = 403; */
+    /*     return; */
+    /* } */
+    /* message->content_length = statbuf.st_size; */
+    /* response->status_code = 200; */
     return 404;
 }
 
 // TODO
 int head_request(struct httpRequest req) {
+    /* printf("Processing HEAD request\n\n"); */
+    /*  */
+    /* struct stat statbuf; */
+    /* int stat_info = stat(message->filename, &statbuf); */
+    /*  */
+    /* if(stat_info < 0) { */
+    /*     response->status_code = 404; */
+    /*     return; */
+    /* } */
+    /* message->content_length = statbuf.st_size; */
+    /*  */
+    /* response->status_code = 200; */
     return 404;
 }
 
