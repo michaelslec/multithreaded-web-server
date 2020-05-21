@@ -11,7 +11,7 @@
 
 #define BUFFER_SIZE 4096
 
-struct httpObject {
+struct httpRequest {
     /*
         Create some object 'struct' to keep track of all
         the components related to a HTTP message
@@ -21,41 +21,46 @@ struct httpObject {
     char filename[28];      // what is the file we are worried about
     char httpversion[9];    // HTTP/1.1
     ssize_t content_length; // example: 13
-    int status_code;
-    uint8_t buffer[BUFFER_SIZE];
-};
+} dummyReq;
+
+struct httpResponse {
+    char method[5];                // PUT, HEAD, GET
+    int status_code;               // 200, 404, etc.
+    char status_code_message[100]; // OK, File not found, etc
+} dummyRes;
 
 /*
     \brief 1. Want to read in the HTTP message/ data coming in from socket
     \param client_sockd - socket file descriptor
     \param message - object we want to 'fill in' as we read in the HTTP message
 */
-void read_http_request(ssize_t client_sockd, struct httpObject* message) {
+// TODO
+struct httpRequest read_http_request(ssize_t client_sockd) {
     printf("This function will take care of reading message\n");
 
     /*
      * Start constructing HTTP request based off data from socket
      */
 
-    return;
+    return dummyReq;
 }
 
 /*
     \brief 2. Want to process the message we just recieved
 */
-void process_request() {
+// TODO
+struct httpResponse process_request(const struct httpRequest request) {
     printf("Processing Request\n");
 
-    return;
+    return dummyRes;
 }
 
 /*
     \brief 3. Construct some response based on the HTTP request you recieved
 */
-void construct_http_response() {
+// TODO
+void send_response(const struct httpResponse response, int client_sockd) {
     printf("Constructing Response\n");
-
-    return;
 }
 
 
@@ -111,8 +116,6 @@ int main(int argc, char** argv) {
     struct sockaddr client_addr;
     socklen_t client_addrlen;
 
-    struct httpObject message;
-
     while (true) {
         printf("[+] server is waiting...\n");
 
@@ -125,32 +128,7 @@ int main(int argc, char** argv) {
         /*
          * 2. Read HTTP Message
          */
-        read_http_request(client_sockd, &message);
-
-        /*
-         * 3. Process Request
-         */
-        process_request();
-
-        /*
-         * 4. Construct Response
-         */
-        construct_http_response();
-
-        /*
-         * 5. Send Response
-         */
-        printf("Response Sent\n");
-
-        /*
-         * Sample Example which wrote to STDOUT once.
-         *
-        uint8_t buff[BUFFER_SIZE + 1];
-        ssize_t bytes = recv(client_sockd, buff, BUFFER_SIZE, 0);
-        buff[bytes] = 0; // null terminate
-        printf("[+] received %ld bytes from client\n[+] response: \n", bytes);
-        write(STDOUT_FILENO, buff, bytes);
-        */
+        send_response(process_request(read_http_request(client_sockd)), client_sockd);
     }
 
     return EXIT_SUCCESS;
