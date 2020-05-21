@@ -8,15 +8,26 @@ void printRequest(const struct httpRequest req) {
     printf("content_length == %ld\n", req.content_length);
 }
 
-int put_request(struct httpRequest req) {
+void printResponse(const struct httpResponse res) {
+    printf("HTTP RESPONSE: \n");
+    printf("method == %s\n", res.method);
+    printf("status_code == %d\n", res.status_code);
+    printf("status_code_message == %s\n", res.status_code_message);
+    printf("content_length == %ld\n", res.content_length);
+}
+
+
+void put_request(struct httpRequest req, struct httpResponse* res) {
     /* printf("Processing PUT request...\n\n"); */
     uint8_t buffer[BUFFER_SIZE];
     memset(buffer, '\0', BUFFER_SIZE);
+    strcpy(res->method, "PUT");
 
     int fd = open(req.filename,  O_RDWR | O_CREAT | O_TRUNC, 0777);
     if(fd < 0) {
         perror("put error");
-        return 500;
+        res->status_code = 500;
+        return;
     }
 
     /* printf("writing...\n"); */
@@ -30,37 +41,43 @@ int put_request(struct httpRequest req) {
 
     close(fd);
     
-    return 201;
+    res->status_code =  201;
 }
 
-int get_request(struct httpRequest req) {
+void get_request(struct httpRequest req, struct httpResponse* res) {
     /* printf("Processing GET request\n\n"); */
+    strcpy(res->method, "GET");
 
     if(access(req.filename, F_OK)) {
-        return 404;
+        res->status_code = 404;
     }
 
     int fd = open(req.filename, O_RDONLY);
     if (fd < 0) {
-        return 403;
+        res->status_code  = 403;
     }
+
+    struct stat statbuf;
+    fstat(fd, &statbuf);
+    
 
     close(fd);
 
-    return 200;
+    res->status_code  = 200;
 }
 
-int head_request(struct httpRequest req) {
+void head_request(struct httpRequest req, struct httpResponse* res) {
     /* printf("Processing HEAD request\n\n"); */
+    strcpy(res->method, "HEAD");
 
     struct stat statbuf;
     int stat_info = stat(req.filename, &statbuf);
 
     if(stat_info < 0) {
-        return 404;
+        res->status_code = 404;
     }
 
-    return 200;
+    res->status_code = 200;
 }
 
 int check_filename(const char* filename) {
@@ -142,17 +159,17 @@ struct httpResponse process_request(const struct httpRequest request) {
 
     // Switch for methods
     if((strcmp(request.method, "PUT")) == 0) {
-        strcpy(res.method, "PUT");
-        res.status_code = put_request(request);
+        put_request(request, &res);
     }
     else if((strcmp(request.method, "GET") == 0)) {
-        strcpy(res.method, "GET");
-        res.status_code = get_request(request);
+        get_request(request, &res);
     }
     else if((strcmp(request.method, "HEAD") == 0)) {
-        strcpy(res.method, "HEAD");
-        res.status_code = head_request(request);
+        head_request(request, &res);
     }
+
+    calculate_status_code_message(&res);
+    printResponse(res);
 
     return res;
 }

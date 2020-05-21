@@ -53,10 +53,16 @@ struct httpResponse process_request(const struct httpRequest request);
 void send_response(const struct httpResponse response); 
 
 /*
-   Helper function: Prints out vlaues of httpRequest struct
+   Helper function: Prints out values of httpRequest struct
    \param req HTTP request object
 */
 void printRequest(const struct httpRequest req);
+
+/*
+   Helper function: Prints out values of httpResponse struct
+   \param req HTTP response object
+*/
+void printResponse(const struct httpResponse res);
 
 /*
    Validates filename, HTTP version, and method
@@ -84,26 +90,22 @@ int check_http_version(const char* version);
 int check_method(const char* method);
 
 /*
- * returns status code of put request & writes file
  * \param req the request made by the client
- * \param client_sockd socket file descriptor
- * \return status code of response
+ * \param res the response object to store values
  */
-int put_request(struct httpRequest req);
+void put_request(struct httpRequest req, struct httpResponse* res);
 
 /*
- * returns status code of get request
  * \param req the request made by the client
- * \return status code of response
+ * \param res the response object to store values
  */
-int get_request(struct httpRequest req);
+void get_request(struct httpRequest req, struct httpResponse* res);
 
 /*
- * returns status code of head request
  * \param req the request made by the client
- * \return status code of response
+ * \param res the response object to store values
  */
-int head_request(struct httpRequest req);
+void head_request(struct httpRequest req, struct httpResponse* res);
 
 /*
  * Inserts proper message based off status code into given httpReponse obj
