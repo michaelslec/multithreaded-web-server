@@ -10,5 +10,5 @@ find_package (Threads REQUIRED)
 add_executable(httpserver httpserver.c httpserver.h)
 target_link_libraries (httpserver Threads::Threads)
 
-# add_executable(tests tests.c httpserver.h)
-# target_link_libraries (tests Threads::Threads)
+add_executable(tests tests.c httpserver.h)
+target_link_libraries (tests Threads::Threads /usr/lib/libcheck.so)
