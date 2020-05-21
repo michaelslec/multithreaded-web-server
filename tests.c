@@ -30,6 +30,19 @@ START_TEST(check_filename_test)
 }
 END_TEST
 
+START_TEST(get_request_test)
+{
+    struct httpRequest get_goodfile = {"GET", "SMALL_TEST", "1.1", 0};
+    ck_assert_int_eq(get_request(get_goodfile), 200);
+
+    struct httpRequest get_nofile = {"GET", "TEST", "1.1", 0};
+    ck_assert_int_eq(get_request(get_nofile), 404);
+
+    struct httpRequest get_noperm = {"GET", "NOPERMISSION", "1.1", 0};
+    ck_assert_int_eq(get_request(get_noperm), 403);
+}
+END_TEST
+
 START_TEST(validate_test)
 {
     struct httpRequest correct, bad_file, bad_method, bad_version;
@@ -112,6 +125,7 @@ Suite * testing_suite(void)
     tcase_add_test(tc_core, check_filename_test);
     tcase_add_test(tc_core, validate_test);
     tcase_add_test(tc_core, process_request_test);
+    tcase_add_test(tc_core, get_request_test);
     suite_add_tcase(s, tc_core);
 
     return s;

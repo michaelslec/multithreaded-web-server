@@ -33,36 +33,21 @@ int put_request(struct httpRequest req) {
     return 201;
 }
 
-// TODO
 int get_request(struct httpRequest req) {
-    /* printf("Processing GET request\n\n"); */
-    /*  */
-    /* memset(message->buffer, '\0', BUFFER_SIZE); */
-    /*  */
-    /* if(access(message->filename, F_OK)) { */
-    /*     response->status_code = 404; */
-    /*     return; */
-    /* } */
-    /*  */
-    /* //int fd = open(message->filename, O_RDWR); */
-    /* int fd = open(message->filename, O_RDONLY); */
-    /* if(fd < 0) { */
-    /*     printf("errono, %d\n", errno); */
-    /*     perror("put error"); */
-    /*     response->status_code = 403; */
-    /*     return; */
-    /* } */
-    /* message->fd = fd; */
-    /* struct stat statbuf; */
-    /* int stat_info = stat(message->filename, &statbuf); */
-    /*  */
-    /* if(stat_info < 0) { */
-    /*     response->status_code = 403; */
-    /*     return; */
-    /* } */
-    /* message->content_length = statbuf.st_size; */
-    /* response->status_code = 200; */
-    return 404;
+    printf("Processing GET request\n\n");
+
+    if(access(req.filename, F_OK)) {
+        return 404;
+    }
+
+    int fd = open(req.filename, O_RDONLY);
+    if (fd < 0) {
+        return 403;
+    }
+
+    close(fd);
+
+    return 200;
 }
 
 // TODO
